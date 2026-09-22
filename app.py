@@ -28,7 +28,10 @@ def _handle(phone, wamid, text):
         whatsapp.send_text(phone, answer)
     except Exception as e:
         print("[bot] error:", e)
-        whatsapp.send_text(phone, "Perdón, tuve un problema. Intenta de nuevo en un momento 🙏")
+        try:
+            whatsapp.send_text(phone, "Perdón, tuve un problema. Intenta de nuevo en un momento 🙏")
+        except Exception as e2:
+            print("[bot] no se pudo enviar la disculpa:", e2)
 
 
 @app.post("/webhook")

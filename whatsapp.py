@@ -10,8 +10,12 @@ API = f"https://graph.facebook.com/{config.GRAPH_VERSION}/{config.WA_PHONE_NUMBE
 
 
 def _post(payload):
-    r = requests.post(API, json=payload, timeout=20,
-                      headers={"Authorization": f"Bearer {config.WA_TOKEN}"})
+    try:
+        r = requests.post(API, json=payload, timeout=20,
+                          headers={"Authorization": f"Bearer {config.WA_TOKEN}"})
+    except requests.RequestException as e:  # red caída, timeout, etc.: no tumbar al llamador
+        print("[wa] error de red:", e)
+        return None
     if r.status_code >= 300:
         print("[wa] error", r.status_code, r.text)
     return r
