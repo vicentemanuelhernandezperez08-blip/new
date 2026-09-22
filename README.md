@@ -31,19 +31,30 @@ Prueba: "¿tienes coca de 2 litros?", "quiero 2 cocas de 600 y un kilo de frijol
 5. Agrega y verifica el número real de la tienda (no puede estar activo en la app de WhatsApp normal).
 
 ## 3. Desplegar en el VPS (Hostinger)
+Requisitos: VPS con Ubuntu/Debian, un subdominio (ej. `bot.tudominio.com`) con registro **A**
+apuntando a la IP del VPS, y los puertos 80/443 abiertos.
+
 ```bash
-sudo mkdir -p /opt/abarrotes-bot && sudo cp -r . /opt/abarrotes-bot && cd /opt/abarrotes-bot
-python3 -m venv venv && venv/bin/pip install -r requirements.txt
-sudo chown -R www-data:www-data /opt/abarrotes-bot
-sudo cp abarrotes-bot.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now abarrotes-bot
+ssh root@IP-DEL-VPS
+git clone https://github.com/vicentemanuelhernandezperez08-blip/new.git abarrotes-bot
+cd abarrotes-bot
+sudo ./deploy/install.sh bot.tudominio.com tu@correo.com   # 1ª vez: crea /opt/abarrotes-bot/.env y se detiene
+sudo nano /opt/abarrotes-bot/.env                          # llena tokens de WhatsApp y LLM
+sudo ./deploy/install.sh bot.tudominio.com tu@correo.com   # instala todo
 ```
-Pon Nginx + HTTPS (certbot) apuntando `https://bot.tudominio.com` → `127.0.0.1:5000`.
+El script instala Python, Nginx y certbot; copia el código a `/opt/abarrotes-bot`; crea el venv;
+instala el servicio `abarrotes-bot`; configura Nginx con HTTPS (Let's Encrypt) y comprueba `/health`.
+No arranca si faltan valores reales en `.env` (incluido `WA_APP_SECRET`).
 
 En Meta → WhatsApp → Configuration → Webhook:
 - Callback URL: `https://bot.tudominio.com/webhook`
 - Verify token: el mismo de `WA_VERIFY_TOKEN`
 - Suscríbete al campo **messages**.
+
+**Actualizar:** `cd abarrotes-bot && git pull && sudo ./deploy/install.sh bot.tudominio.com tu@correo.com`
+(no toca `.env` ni la base de pedidos).
+
+**Logs:** `sudo journalctl -u abarrotes-bot -f`
 
 ## 4. Conectar Eleventa (inventario real)
 El VPS debe alcanzar la PC de la tienda por **Tailscale** (puerto Firebird 3050).
@@ -56,7 +67,8 @@ solo lectura si puedes. Si tu versión de Eleventa usa otros nombres de columna,
 `FB_COL_*` en `.env`. Si la PC está apagada, el bot sigue con el último catálogo en caché.
 
 ## Ver pedidos
-`GET /pedidos?token=<WA_VERIFY_TOKEN>` (idealmente solo vía Tailscale). Cada pedido nuevo
+`GET /pedidos?token=<WA_VERIFY_TOKEN>`. Nginx solo la permite desde Tailscale o desde el propio VPS
+(`curl "http://127.0.0.1:5000/pedidos?token=..."`). Cada pedido nuevo
 también llega a `OWNER_PHONE` por WhatsApp.
 
 ## Costos a tener en cuenta
